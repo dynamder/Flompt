@@ -75,10 +75,7 @@ impl Context for MyContext {
     fn get_mut<T: 'static>(&mut self, _: &str) -> Option<&mut T> {
         None
     }
-}
-
-impl DisplayableContext for MyContext {
-    fn get_displayable(&self, key: &str) -> Option<String> {
+    fn template_var(&self, key: &str) -> Option<String> {
         match key {
             "name" => Some(self.name.clone()),
             "a" => Some(self.a.to_string()),

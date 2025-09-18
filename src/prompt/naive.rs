@@ -1,13 +1,10 @@
 use std::borrow::Cow;
-use crate::prompt::context::{Context, DisplayableContext};
+use crate::prompt::context::{Context};
 use crate::prompt::control::{IfPrompt, LoopPrompt};
 use crate::prompt::error::PromptError;
 use crate::prompt::template::PromptTemplate;
 
 pub trait Prompt<C: Context> {
-    fn prompt_str(&self, context: &C) -> Result<Option<Cow<str>>, PromptError>;
-}
-pub trait PromptWithTemplate<C: DisplayableContext>: Prompt<C> {
     fn prompt_str(&self, context: &C) -> Result<Option<Cow<str>>, PromptError>;
 }
 
@@ -30,8 +27,6 @@ impl<'a, C: Context> PromptVariant<'a, C> {
     pub fn loop_prompt(p: LoopPrompt<'a, C>) -> Self {
         PromptVariant::Loop(Box::new(p))
     }
-}
-impl<'a, C: DisplayableContext> PromptVariant<'a, C> {
     pub fn template(t: PromptTemplate) -> Self {
         PromptVariant::Template(t)
     }
@@ -51,7 +46,7 @@ impl<'a, C: Context> From<Cow<'a, str>> for PromptVariant<'a, C> {
         PromptVariant::naive(s)
     }
 }
-impl<'a, C: DisplayableContext> From<PromptTemplate> for PromptVariant<'a, C> {
+impl<'a, C: Context> From<PromptTemplate> for PromptVariant<'a, C> {
     fn from(t: PromptTemplate) -> Self {
         PromptVariant::template(t)
     }
@@ -70,17 +65,7 @@ impl<C: Context> Prompt<C> for PromptVariant<'_, C> {
     fn prompt_str(&self, context: &C) -> Result<Option<Cow<str>>, PromptError> {
         match self {
             PromptVariant::Naive(s) => Ok(Some(Cow::Borrowed(s))), //Is this right?
-            PromptVariant::Template(_) => unreachable!("Template cannot be pushed in a non Displayable Context."),
-            PromptVariant::If(p) => p.prompt_str(context),
-            PromptVariant::Loop(p) => p.prompt_str(context),
-        }
-    }
-}
-impl <C: DisplayableContext> PromptWithTemplate<C> for PromptVariant<'_, C> {
-    fn prompt_str(&self, context: &C) -> Result<Option<Cow<str>>, PromptError> {
-        match self {
-            PromptVariant::Naive(s) => Ok(Some(Cow::Borrowed(s))),
-            PromptVariant::Template(t) => t.prompt_str(context),
+            PromptVariant::Template(p) => p.prompt_str(context),
             PromptVariant::If(p) => p.prompt_str(context),
             PromptVariant::Loop(p) => p.prompt_str(context),
         }

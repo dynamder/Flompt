@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use crate::prompt::context::{DisplayableContext};
+use crate::prompt::context::{Context};
 use crate::prompt::error::{PromptError, PromptTemplateError};
 use crate::prompt::naive::{Prompt};
 
@@ -67,7 +67,7 @@ impl PromptTemplate {
         })
     }
 }
-impl<C: DisplayableContext> Prompt<C> for PromptTemplate {
+impl<C: Context> Prompt<C> for PromptTemplate {
     fn prompt_str(&self, context: &C) -> Result<Option<Cow<str>>, PromptError> {
         if self.parts.is_empty() {
             return Ok(None);
@@ -80,7 +80,7 @@ impl<C: DisplayableContext> Prompt<C> for PromptTemplate {
                 match part {
                     TemplatePart::Text(text) => acc.push_str(text),
                     TemplatePart::Var(var_name) => {
-                        if let Some(var_value) = context.get_displayable(var_name) {
+                        if let Some(var_value) = context.template_var(var_name) {
                             acc.push_str(&var_value);
                         } else {
                             return Err(PromptError::MissingContextVar(var_name.clone()));
