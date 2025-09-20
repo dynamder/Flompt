@@ -1,8 +1,18 @@
 use std::borrow::Cow;
+
 use crate::prompt::context::{Context};
 use crate::prompt::control::{IfPrompt, LoopPrompt};
 use crate::prompt::error::PromptError;
 use crate::prompt::template::PromptTemplate;
+
+#[cfg(feature = "async-openai")]
+use async_openai::types::CreateChatCompletionResponse;
+#[cfg(feature = "async-openai")]
+use serde::Deserialize;
+#[cfg(feature = "async-openai")]
+use async_openai::Client;
+#[cfg(feature = "async-openai")]
+use async_openai::config::OpenAIConfig;
 
 pub trait Prompt<C: Context> {
     fn prompt_str(&self, context: &C) -> Result<Option<Cow<str>>, PromptError>;

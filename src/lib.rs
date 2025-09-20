@@ -5,9 +5,17 @@ pub mod prelude {
     pub use crate::prompt::control::{IfPrompt, IfPromptBuilder, LoopPrompt, LoopPromptBuilder};
     pub use crate::prompt::naive::{Prompt, PromptVariant};
     pub use crate::prompt::template::PromptTemplate;
-    pub use crate::prompt::error::{PromptError};
+    pub use crate::prompt::error::PromptError;
     pub use crate::prompt::context::Context;
+    #[cfg(feature = "async-openai")]
+    pub use crate::feature::async_openai::{
+        send_control::*,
+        retry::RetryStrategy,
+        prompt_result::{PromptResult, RetryablePromptResult, PromptExecutableError, RetryableExecuteError},
+    };
 }
+
+pub mod feature;
 
 #[cfg(test)]
 mod tests {
