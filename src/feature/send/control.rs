@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use crate::prelude::PromptTemplate;
+use crate::prelude::{IfPrompt, PromptTemplate, PromptVariant};
 use crate::prompt::context::Context;
 use crate::prompt::error::{IfPromptBuilderError, PromptError};
 use crate::prompt::naive::{Prompt};

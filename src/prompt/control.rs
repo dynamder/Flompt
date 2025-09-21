@@ -24,6 +24,13 @@ where
     pub fn get_condition(&self) -> &dyn Fn(&C) -> bool {
         &self.condition
     }
+    pub fn new(then: PromptVariant<'a, C>, otherwise: Option<PromptVariant<'a, C>>, condition: impl Fn(&C) -> bool + 'static) -> Self {
+        IfPrompt {
+            then,
+            otherwise,
+            condition: Box::new(condition),
+        }
+    }
 }
 impl<C> Prompt<C> for IfPrompt<'_, C>
 where
@@ -58,6 +65,12 @@ where
     }
     pub fn get_condition(&self) -> &dyn Fn(&C) -> bool {
         &self.condition
+    }
+    pub fn new(prompt: PromptVariant<'a, C>, condition: impl Fn(&C) -> bool + 'static) -> Self {
+        LoopPrompt {
+            prompt,
+            condition: Box::new(condition),
+        }
     }
 }
 impl<'a, C> Prompt<C> for LoopPrompt<'a, C>

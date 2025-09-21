@@ -8,6 +8,10 @@ thiserror = "2.0.16"
 async-openai = {version = "0.29.3", optional = true}
 serde_json = {version = "1.0.145", optional = true}
 serde = {version = "1.0.225", optional = true}
+tokio = {version = "1.47.1", optional = true, features = ["test-util"]}
+dotenvy = "0.15.7"
 
 [features]
-async-openai = ["dep:async-openai", "dep:serde_json", "dep:serde"]
+async-openai = ["dep:async-openai", "dep:serde_json", "dep:serde", "dep:tokio"]
+send = []
+retry = ["send", "async-openai"]
