@@ -114,6 +114,12 @@ where
     pub fn model_count(&self) -> usize {
         self.models.len()
     }
+    pub fn inner_variant(&self) -> &PromptVariant<'a, C> {
+        self.prompt.prompt
+    }
+    pub fn models(&self) -> &Vec<&'a str> {
+        &self.models
+    }
     pub async fn execute(&self, context: &'a mut C,client: &'a Client<OpenAIConfig>, select_model: Option<usize>) -> PromptResult<'a, S> {
         if self.models.is_empty() {
             return PromptResult::err(ModelNotSet);
@@ -168,6 +174,15 @@ where
     C: Context,
     S: Deserialize<'a> + Send + Sync + 'a
 {
+    pub fn model_count(&self) -> usize {
+        self.models.len()
+    }
+    pub fn inner_variant(&self) -> &SendPromptVariant<'a, C> {
+        self.prompt.prompt
+    }
+    pub fn models(&self) -> &Vec<&'a str> {
+        &self.models
+    }
     pub async fn execute(&self, context: &'a mut C,client: &'a Client<OpenAIConfig>, select_model: Option<usize>) -> SendPromptResult<'a, S> {
         if self.models.is_empty() {
             return SendPromptResult::err(ModelNotSet);

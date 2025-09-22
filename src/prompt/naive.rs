@@ -5,13 +5,13 @@ use crate::prompt::control::{IfPrompt, LoopPrompt};
 use crate::prompt::error::PromptError;
 use crate::prompt::template::PromptTemplate;
 
-#[cfg(feature = "async-openai")]
+#[cfg(feature = "async_oai")]
 use async_openai::types::CreateChatCompletionResponse;
-#[cfg(feature = "async-openai")]
+#[cfg(feature = "async_oai")]
 use serde::Deserialize;
-#[cfg(feature = "async-openai")]
+#[cfg(feature = "async_oai")]
 use async_openai::Client;
-#[cfg(feature = "async-openai")]
+#[cfg(feature = "async_oai")]
 use async_openai::config::OpenAIConfig;
 
 pub trait Prompt<C: Context> {

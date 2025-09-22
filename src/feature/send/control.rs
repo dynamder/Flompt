@@ -6,11 +6,11 @@ use crate::prompt::naive::{Prompt};
 
 pub struct SendIfPrompt<'a, C>
 where
-    C: Context + 'a
+    C: Context
 {
     then: SendPromptVariant<'a, C>,
     otherwise: Option<SendPromptVariant<'a, C>>,
-    condition: Box<dyn Fn(&C) -> bool + Send + Sync + 'a>,
+    condition: Box<dyn Fn(&C) -> bool + Send + Sync + 'static>,
 }
 impl<'a, C> SendIfPrompt<'a, C>
 where
@@ -52,7 +52,7 @@ where
 }
 impl<'a, C> SendLoopPrompt<'a, C>
 where
-    C: Context,
+    C: Context + 'a,
 {
     pub fn get_prompt(&self) -> &SendPromptVariant<C> {
         &self.prompt
@@ -75,7 +75,7 @@ where
 pub struct SendIfPromptBuilder<'a, C, U>
 where
     C: Context + 'a,
-    U: Fn(&C) -> bool + Send + Sync + 'a,
+    U: Fn(&C) -> bool + Send + Sync + 'static,
 {
     then: Option<SendPromptVariant<'a, C>>,
     otherwise: Option<SendPromptVariant<'a, C>>,
@@ -84,7 +84,7 @@ where
 impl<'a, C, U> SendIfPromptBuilder<'a, C, U>
 where
     C: Context,
-    U: Fn(&C) -> bool + Send + Sync + 'a,
+    U: Fn(&C) -> bool + Send + Sync + 'static,
 {
     pub fn new() -> Self {
         SendIfPromptBuilder {
@@ -123,7 +123,7 @@ where
 pub struct SendLoopPromptBuilder<'a, C, U>
 where
     C: Context,
-    U: Fn(&C) -> bool,
+    U: Fn(&C) -> bool + 'static,
 {
     prompt: Option<SendPromptVariant<'a, C>>,
     condition: Option<U>,
@@ -131,7 +131,7 @@ where
 impl<'a, C, U> SendLoopPromptBuilder<'a, C, U>
 where
     C: Context + 'a,
-    U: Fn(&C) -> bool + Send + Sync + 'a,
+    U: Fn(&C) -> bool + Send + Sync + 'static,
 {
     pub fn new() -> Self {
         SendLoopPromptBuilder {

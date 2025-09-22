@@ -1,4 +1,4 @@
-#[cfg(feature = "async-openai")]
+#[cfg(feature = "async_oai")]
 pub mod async_openai;
 
 #[cfg(feature = "send")]

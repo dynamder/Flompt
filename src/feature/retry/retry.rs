@@ -9,53 +9,12 @@ use crate::feature::async_openai::prompt_result::PromptExecutableError;
 use crate::feature::retry::result::{RetryableExecuteError, RetryablePromptResult};
 use crate::prelude::Context;
 
-pub struct RetryStrategy<'a, C, S>
-where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a,
-{
-    retry_times: usize,
-    retry_func: Box<dyn Fn(RetryableExecuteError<'a, C, S>) -> Pin<Box<dyn Future<Output = Result<Option<S>, PromptExecutableError>> + Send + '_>> + Send + Sync + 'static>,
-    _marker: PhantomData<&'a (C, S)>,
-}
-impl<'a, C, S> RetryStrategy<'a, C, S>
-where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a,
-{
-    pub fn new<F, Fut>(
-        retry_times: usize,
-        retry_func: F
-    ) -> Self
+pub struct RetryStrategy;
+impl RetryStrategy {
+    pub async fn default_retry<C, S>(retryable_error: RetryableExecuteError<'_, C, S>, retry_times: usize) -> Result<Option<S>, PromptExecutableError>
     where
-        F: Fn(RetryableExecuteError<'a, C, S>) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<Option<S>, PromptExecutableError>> + Send + 'a
-    {
-        let boxed_func = move |error| {
-            let fut = retry_func(error);
-            Box::pin(fut) as Pin<Box<dyn Future<Output = Result<Option<S>, PromptExecutableError>> + Send + 'a>>
-        };
-        Self {
-            retry_times,
-            retry_func: Box::new(boxed_func),
-            _marker: PhantomData,
-        }
-    }
-    pub fn default_strategy(retry_times: usize) -> Self {
-        Self::new(
-            retry_times,
-            move |error: RetryableExecuteError<'a, C, S>| {
-                Self::default_retry_func(error, retry_times)
-            }
-        )
-    }
-    pub fn get_retry_func(&'a self) -> &(dyn Fn(RetryableExecuteError<'a, C, S>) -> Pin<Box<dyn Future<Output = Result<Option<S>, PromptExecutableError>> + Send + '_>> + Send + Sync + 'a) {
-        &self.retry_func
-    }
-    async fn default_retry_func(retryable_error: RetryableExecuteError<'a, C, S>, retry_times: usize) -> Result<Option<S>, PromptExecutableError>
-    where
-        C: Send + Sync + 'a,
-        S: Send + Sync + 'a
+        C: Context + Send + Sync + 'static,
+        S: for<'de> Deserialize<'de> + Send + Sync + 'static
     {
         let mut error_retry = retryable_error;
 
@@ -97,15 +56,6 @@ where
         ))
     }
 }
-impl<'a, C, S> Default for RetryStrategy<'a, C, S>
-where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a,
-{
-    fn default() -> Self {
-        Self::default_strategy(3)
-    }
-}
 async fn default_process_openai_error<'a, C, S>(
     error: OpenAIError,
     origin: PromptRetryExecutableWithModel<'a, C, S>,
@@ -115,8 +65,8 @@ async fn default_process_openai_error<'a, C, S>(
     model_list_size: usize
 ) -> (RetryablePromptResult<'a, C, S>, bool) //bool表示是否还应继续重试
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a
+    C: Context + Send + Sync + 'static,
+    S: for<'de> Deserialize<'de> + Send + Sync + 'static
 {
     match error {
         OpenAIError::Reqwest(_) | OpenAIError::JSONDeserialize(_) | OpenAIError::StreamError(_) => {

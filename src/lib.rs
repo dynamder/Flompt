@@ -7,7 +7,7 @@ pub mod prelude {
     pub use crate::prompt::template::PromptTemplate;
     pub use crate::prompt::error::PromptError;
     pub use crate::prompt::context::Context;
-    #[cfg(feature = "async-openai")]
+    #[cfg(feature = "async_oai")]
     pub use crate::feature::async_openai::prompt_result::{PromptExecutableError, PromptResult};
     #[cfg(feature = "retry")]
     pub use crate::feature::retry::RetryStrategy;
@@ -18,7 +18,7 @@ pub mod prelude {
     #[cfg(feature = "send")]
     pub use crate::feature::send::{control::*, flow::*};
     #[cfg(feature = "send")]
-    #[cfg(feature = "async-openai")]
+    #[cfg(feature = "async_oai")]
     pub use crate::feature::send::result::*;
 }
 
@@ -122,7 +122,7 @@ mod tests {
             my_context.a += 1;
         }
     }
-    #[cfg(feature = "async-openai")]
+    #[cfg(feature = "async_oai")]
     #[tokio::test]
     async fn plain_execute_chain() {
         let mut my_context = MyContext {
@@ -175,7 +175,7 @@ mod tests {
             my_context.a += 1;
         }
     }
-    #[cfg(feature = "async-openai")]
+    #[cfg(feature = "async_oai")]
     #[cfg(feature = "send")]
     #[tokio::test]
     async fn send_execute_chain() {
@@ -278,7 +278,7 @@ mod tests {
                 )
                 .execute_with_retry(&mut my_context, &client, None)
                 .await
-                .retry(RetryStrategy::<MyContext, String>::default())
+                .retry(3)
                 .await
                 .unwrap();
 

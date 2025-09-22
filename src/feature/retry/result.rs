@@ -7,8 +7,8 @@ use crate::prelude::{Context, PromptExecutableError, RetryStrategy};
 
 pub struct RetryableExecuteError<'a, C, S>
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a
+    C: Context + Send + Sync + 'static,
+    S: for<'de> Deserialize<'de> + Send + Sync
 {
     pub error: PromptExecutableError,
     pub origin: PromptRetryExecutableWithModel<'a, C, S>,
@@ -19,8 +19,8 @@ where
 
 impl<'a, C, S> RetryableExecuteError<'a, C, S>
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a
+    C: Context + Send + Sync,
+    S: for<'de> Deserialize<'de> + Send + Sync + 'static
 {
     pub fn new(
         error: PromptExecutableError,
@@ -31,16 +31,15 @@ where
     ) -> Self {
         Self { error, origin, context, client, model_selected}
     }
-    pub async fn retry(self, retry_strategy: RetryStrategy<'a, C, S>) -> Result<Option<S>, PromptExecutableError> {
-        let retry_func = retry_strategy.get_retry_func();
-        retry_func(self).await
+    pub async fn retry(self, retry_times: usize) -> Result<Option<S>, PromptExecutableError> {
+        RetryStrategy::default_retry(self, retry_times).await
     }
 }
 
 impl<'a, C, S> From<(PromptRetryExecutableWithModel<'a, C, S>, PromptExecutableError, &'a mut C, &'a Client<OpenAIConfig>, Option<usize>)> for RetryableExecuteError<'a, C, S>
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a
+    C: Context + Send + Sync,
+    S: for<'de> Deserialize<'de> + Send + Sync + 'static
 {
     fn from(value: (PromptRetryExecutableWithModel<'a, C, S>, PromptExecutableError, &'a mut C, &'a Client<OpenAIConfig>, Option<usize>)) -> Self {
         Self::new(value.1, value.0, value.2, value.3, value.4)
@@ -49,8 +48,8 @@ where
 
 impl<'a, C, S> From<(PromptRetryExecutableWithModel<'a, C, S>, PromptExecutableError, &'a mut C, &'a Client<OpenAIConfig>, Option<usize>)> for RetryablePromptResult<'a, C, S>
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a
+    C: Context + Send + Sync,
+    S: for<'de> Deserialize<'de> + Send + Sync + 'static
 {
     fn from(value: (PromptRetryExecutableWithModel<'a, C, S>, PromptExecutableError, &'a mut C, &'a Client<OpenAIConfig>, Option<usize>)) -> Self {
         Self::err(value)
@@ -59,19 +58,19 @@ where
 
 pub struct RetryablePromptResult<'a, C, S>(Result<Option<S>, RetryableExecuteError<'a, C, S>>)
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a;
+    C: Context + Send + Sync + 'static,
+    S: for<'de> Deserialize<'de> + Send + Sync;
 
 impl<'a, C, S> RetryablePromptResult<'a, C, S>
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a,
+    C: Context + Send + Sync,
+    S: for<'de> Deserialize<'de> + Send + Sync + 'static,
 {
-    pub async fn retry(self, retry_strategy: RetryStrategy<'a, C, S>) -> Result<Option<S>, PromptExecutableError> {
+    pub async fn retry(self, retry_times: usize)  -> Result<Option<S>, PromptExecutableError> {
         match self.0 {
             Ok(s) => Ok(s),
             Err(e) => {
-                e.retry(retry_strategy).await
+                e.retry(retry_times).await
             }
         }
     }
@@ -97,8 +96,8 @@ where
 
 impl<'a, C, S> RetryablePromptResult<'a, C, S>
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a
+    C: Context + Send + Sync,
+    S: for<'de> Deserialize<'de> + Send + Sync
 {
     pub fn ok(value: impl Into<Option<S>>) -> Self {
         Self(Ok(value.into()))
@@ -110,8 +109,8 @@ where
 
 impl<'a, C, S> From<RetryableExecuteError<'a, C, S>> for RetryablePromptResult<'a, C, S>
 where
-    C: Context + Send + Sync + 'a,
-    S: Deserialize<'a> + Send + Sync + 'a
+    C: Context + Send + Sync,
+    S: for<'de> Deserialize<'de> + Send + Sync
 {
     fn from(value: RetryableExecuteError<'a, C, S>) -> Self {
         Self(Err(value))

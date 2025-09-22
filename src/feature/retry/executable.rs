@@ -8,16 +8,16 @@ use crate::prelude::PromptExecutableError::{InvalidModelSelection, ModelNotSet};
 pub struct PromptRetryExecutable<'a, C, S>
 where
     C: Context,
-    S: Deserialize<'a>
+    S: for<'de> Deserialize<'de>
 {
     prompt: &'a SendPromptVariant<'a, C>,
-    processor: Box<dyn Fn(CreateChatCompletionResponse, &mut C) -> Result<Option<S>, serde_json::Error> + Send + Sync + 'a>,
+    processor: Box<dyn Fn(CreateChatCompletionResponse, &mut C) -> Result<Option<S>, serde_json::Error> + Send + Sync + 'static>,
 }
 
 pub struct PromptRetryExecutableWithModel<'a, C, S>
 where
     C: Context,
-    S: Deserialize<'a>
+    S: for<'de> Deserialize<'de>
 {
     prompt: PromptRetryExecutable<'a, C, S>,
     models: Vec<&'a str>,
@@ -26,7 +26,7 @@ where
 impl<'a, C, S> PromptRetryExecutable<'a, C, S>
 where
     C: Context,
-    S: Deserialize<'a>
+    S: for<'de> Deserialize<'de>
 {
     pub fn get_processor(&self) -> &(dyn (Fn(CreateChatCompletionResponse, &mut C) -> Result<Option<S>, serde_json::Error>) + Send + Sync) {
         &self.processor
@@ -42,15 +42,15 @@ where
 impl<'a, C, S> PromptRetryExecutableWithModel<'a, C, S>
 where
     C: Context,
-    S: Deserialize<'a>
+    S: for<'de> Deserialize<'de>
 {
     pub fn model_count(&self) -> usize {
         self.models.len()
     }
     pub async fn execute_with_retry(self, context: &'a mut C,client: &'a Client<OpenAIConfig>, select_model: Option<usize>) -> RetryablePromptResult<'a, C, S>
     where
-        C: Send + Sync + 'a,
-        S: Send + Sync + 'a
+        C: Send + Sync + 'static,
+        S: Send + Sync + 'static
     {
         if self.models.is_empty() {
             return RetryablePromptResult::err((self, ModelNotSet, context, client, select_model));
@@ -106,8 +106,8 @@ where
 {
     pub fn to_retry_executable<S, F>(&'a self, processor: F) -> PromptRetryExecutable<'a, C, S>
     where
-        S: Deserialize<'a>,
-        F: Fn(CreateChatCompletionResponse, &mut C) -> Result<Option<S>, serde_json::Error> + Send + Sync + 'a
+        S: for<'de> Deserialize<'de>,
+        F: Fn(CreateChatCompletionResponse, &mut C) -> Result<Option<S>, serde_json::Error> + Send + Sync + 'static
     {
         PromptRetryExecutable {
             prompt: self,
