@@ -188,7 +188,7 @@ where
 }
 
 
-
+#[cfg(feature = "send")]
 #[derive(Default)]
 pub struct SendExecutablePromptChain<'a, C, S>
 where
@@ -197,6 +197,7 @@ where
 {
     prompts: Vec<SendExecutablePromptVariant<'a, C, S>>
 }
+#[cfg(feature = "send")]
 impl<'a, C, S> SendExecutablePromptChain<'a, C, S>
 where
     C: Context,
@@ -216,7 +217,7 @@ where
         }
     }
 }
-
+#[cfg(feature = "send")]
 pub struct SendExecutableFlow<'a, C, S>
 where
     C: Context,
@@ -224,6 +225,7 @@ where
 {
     prompts: Peekable<std::slice::Iter<'a, SendExecutablePromptVariant<'a, C, S>>>
 }
+#[cfg(feature = "send")]
 impl<'a, C, S> SendExecutableFlow<'a, C, S>
 where
     C: Context,
@@ -274,6 +276,7 @@ where
         }
     }
 }
+#[cfg(feature = "send")]
 pub struct SendExecutableIfPrompt<'a, C, S>
 where
     C: Context,
@@ -283,6 +286,7 @@ where
     then: SendExecutablePromptVariant<'a, C, S>,
     otherwise: Option<SendExecutablePromptVariant<'a, C, S>>
 }
+#[cfg(feature = "send")]
 impl<'a, C, S> SendExecutableIfPrompt<'a, C, S>
 where
     C: Context,
@@ -305,6 +309,7 @@ where
         &self.condition
     }
 }
+#[cfg(feature = "send")]
 pub struct SendExecutableLoopPrompt<'a, C, S>
 where
     C: Context,
@@ -313,6 +318,7 @@ where
     condition: Box<dyn Fn(&C) -> bool>,
     prompt: SendExecutablePromptVariant<'a, C, S>
 }
+#[cfg(feature = "send")]
 impl<'a, C, S> SendExecutableLoopPrompt<'a, C, S>
 where
     C: Context,
@@ -331,6 +337,7 @@ where
         &self.condition
     }
 }
+#[cfg(feature = "send")]
 pub enum SendExecutablePromptVariant<'a, C, S>
 where
     C: Context,
@@ -340,7 +347,7 @@ where
     If(Box<SendExecutableIfPrompt<'a, C, S>>),
     Loop(Box<SendExecutableLoopPrompt<'a, C, S>>),
 }
-
+#[cfg(feature = "send")]
 impl<'a, C, S> From<SendExecutableIfPrompt<'a, C, S>> for SendExecutablePromptVariant<'a, C, S>
 where
     C: Context,
@@ -350,6 +357,7 @@ where
         SendExecutablePromptVariant::If(Box::new(if_prompt))
     }
 }
+#[cfg(feature = "send")]
 impl<'a, C, S> From<SendExecutableLoopPrompt<'a, C, S>> for SendExecutablePromptVariant<'a, C, S>
 where
     C: Context,
@@ -359,6 +367,7 @@ where
         SendExecutablePromptVariant::Loop(Box::new(loop_prompt))
     }
 }
+#[cfg(feature = "send")]
 impl<'a, C, S> From<SendPromptExecutableWithModel<'a, C, S>> for SendExecutablePromptVariant<'a, C, S>
 where
     C: Context,

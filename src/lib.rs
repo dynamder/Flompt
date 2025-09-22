@@ -41,10 +41,8 @@ mod tests {
     use async_openai::Client;
     #[cfg(feature = "async_oai")]
     use async_openai::config::OpenAIConfig;
-    use serde::Deserialize;
     use crate::flow::PromptChain;
     use crate::prelude::*;
-    use crate::prelude::PromptVariant::If;
 
     pub struct MyContext {
         pub name: String,
