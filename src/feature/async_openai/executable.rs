@@ -120,6 +120,7 @@ where
     pub fn models(&self) -> &Vec<&'a str> {
         &self.models
     }
+ 
     pub async fn execute(&self, context: &'a mut C,client: &'a Client<OpenAIConfig>, select_model: Option<usize>) -> PromptResult<'a, S> {
         if self.models.is_empty() {
             return PromptResult::err(ModelNotSet);

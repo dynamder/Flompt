@@ -9,6 +9,10 @@ pub mod prelude {
     pub use crate::prompt::context::Context;
     #[cfg(feature = "async_oai")]
     pub use crate::feature::async_openai::prompt_result::{PromptExecutableError, PromptResult};
+    #[cfg(feature = "async_oai")]
+    pub use crate::feature::async_openai::executable::{PromptExecutableWithModel,PromptExecutable};
+    #[cfg(feature = "async_oai")]
+    pub use crate::feature::async_openai::executable_flow::{ExecutablePromptVariant, ExecutableIfPrompt, ExecutableFlow, ExecutablePromptChain, ExecutableLoopPrompt, ExecutableIfPromptBuilder, ExecutableLoopPromptBuilder};
     #[cfg(feature = "retry")]
     pub use crate::feature::retry::RetryStrategy;
     #[cfg(feature = "retry")]
@@ -20,16 +24,28 @@ pub mod prelude {
     #[cfg(feature = "send")]
     #[cfg(feature = "async_oai")]
     pub use crate::feature::send::result::*;
+    #[cfg(feature = "send")]
+    #[cfg(feature = "async_oai")]
+    pub use crate::feature::async_openai::executable::{SendPromptExecutable, SendPromptExecutableWithModel};
+    #[cfg(feature = "send")]
+    #[cfg(feature = "async_oai")]
+    pub use crate::feature::async_openai::executable_flow::{SendExecutableFlow,SendExecutableIfPrompt,SendExecutableLoopPrompt,SendExecutablePromptChain,SendExecutablePromptVariant, SendExecutableIfPromptBuilder, SendExecutableLoopPromptBuilder};
 }
 
 pub mod feature;
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+    #[cfg(feature = "async_oai")]
     use async_openai::Client;
+    #[cfg(feature = "async_oai")]
     use async_openai::config::OpenAIConfig;
+    use serde::Deserialize;
     use crate::flow::PromptChain;
     use crate::prelude::*;
+    use crate::prelude::PromptVariant::If;
+
     pub struct MyContext {
         pub name: String,
         pub a: i32,
@@ -89,6 +105,50 @@ mod tests {
             my_context.a += 1;
         }
     }
+    #[test]
+    fn nested_plain_chain() {
+        let mut my_context = MyContext {
+            name: "John".to_string(),
+            a: 1,
+            age: "18".to_string()
+        };
+        let mut chain = PromptChain::<MyContext>::new();
+        chain.push("Hello");
+        let template = PromptTemplate::new(
+            "I'm {name}.\n{age} years old.\ncrazy {a}."
+        ).unwrap();
+        chain.push(template);
+        let if_prompt = IfPromptBuilder::new()
+            .then(
+                IfPromptBuilder::new()
+                    .then("nested If block here!")
+                    .otherwise("nested Else block here!")
+                    .condition(|my_context: &MyContext| my_context.a > 3)
+                    .build().unwrap()
+            )
+            .otherwise("Else block here!")
+            .condition(|my_context: &MyContext| my_context.a > 3)
+            .build().unwrap();
+        chain.push(if_prompt);
+        let loop_prompt = LoopPromptBuilder::new()
+            .prompt(
+                IfPromptBuilder::new()
+                    .then("nested If block here!")
+                    .otherwise("nested Else block here!")
+                    .condition(|my_context: &MyContext| my_context.a > 3)
+                    .build().unwrap()
+            )
+            .condition(|my_context: &MyContext| my_context.a < 5)
+            .build().unwrap();
+        chain.push(loop_prompt);
+        chain.push("Can I be reached?");
+        let mut flow = chain.flow();
+        while let Some(prompt) = flow.next_with(&my_context) {
+            println!("{:?}", prompt.prompt_str(&my_context));
+            println!("a: {}", my_context.a);
+            my_context.a += 1;
+        }
+    }
     #[cfg(feature = "send")]
     #[test]
     fn send_chain() {
@@ -111,6 +171,51 @@ mod tests {
         chain.push(if_prompt);
         let loop_prompt = SendLoopPromptBuilder::new()
             .prompt("Loop block here!")
+            .condition(|my_context: &MyContext| my_context.a < 5)
+            .build().unwrap();
+        chain.push(loop_prompt);
+        chain.push("Can I be reached?");
+        let mut flow = chain.flow();
+        while let Some(prompt) = flow.next_with(&my_context) {
+            println!("{:?}", prompt.prompt_str(&my_context));
+            println!("a: {}", my_context.a);
+            my_context.a += 1;
+        }
+    }
+    #[cfg(feature = "send")]
+    #[test]
+    fn nested_send_chain() {
+        let mut my_context = MyContext {
+            name: "John".to_string(),
+            a: 1,
+            age: "18".to_string()
+        };
+        let mut chain = SendPromptChain::<MyContext>::new();
+        chain.push("Hello");
+        let template = PromptTemplate::new(
+            "I'm {name}.\n{age} years old.\ncrazy {a}."
+        ).unwrap();
+        chain.push(template);
+        let if_prompt = SendIfPromptBuilder::new()
+            .then(
+                SendIfPromptBuilder::new()
+                    .then("nested If block here!")
+                    .otherwise("nested Else block here!")
+                    .condition(|my_context: &MyContext| my_context.a > 3)
+                    .build().unwrap()
+            )
+            .otherwise("Else block here!")
+            .condition(|my_context: &MyContext| my_context.a > 3)
+            .build().unwrap();
+        chain.push(if_prompt);
+        let loop_prompt = SendLoopPromptBuilder::new()
+            .prompt(
+                SendIfPromptBuilder::new()
+                    .then("nested If block here!")
+                    .otherwise("nested Else block here!")
+                    .condition(|my_context: &MyContext| my_context.a > 3)
+                    .build().unwrap()
+            )
             .condition(|my_context: &MyContext| my_context.a < 5)
             .build().unwrap();
         chain.push(loop_prompt);

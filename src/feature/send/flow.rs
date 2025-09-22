@@ -34,36 +34,46 @@ where
     C: Context,
 {
     pub fn next_with(&mut self, context: &C) -> Option<&SendPromptVariant<C>> {
-        let mut to_next: bool = true;
-        let mut loop_end: bool = false;
-        let res = self.prompts.peek().and_then(|&prompt| {
-            match prompt {
-                SendPromptVariant::Naive(_) | SendPromptVariant::Template(_)=> Some(prompt),
-                SendPromptVariant::If(if_prompt) => {
-                    if if_prompt.get_condition()(context) {
-                        Some(if_prompt.get_then())
-                    } else {
-                        if_prompt.get_otherwise()
-                    }
-                },
-                SendPromptVariant::Loop(loop_prompt) => {
-                    if loop_prompt.get_condition()(context) {
-                        to_next = false;
-                        Some(loop_prompt.get_prompt())
-                    } else {
-                        loop_end = true;
-                        None
+        loop {
+            let mut final_break = false;
+            let res = self.prompts.peek().and_then(|&prompt| {
+                let mut cur_prompt = prompt;
+                loop {
+                    match cur_prompt {
+                        SendPromptVariant::Naive(_) | SendPromptVariant::Template(_)=> {
+                            final_break = true;
+                            break Some(cur_prompt)
+                        },
+                        SendPromptVariant::If(if_prompt) => {
+                            if if_prompt.get_condition()(context) {
+                                cur_prompt = (if_prompt.get_then())
+                            } else {
+                                cur_prompt = if let Some(otherwise) = if_prompt.get_otherwise() {
+                                    otherwise
+                                } else {
+                                    break None
+                                }
+                            }
+                        },
+                        SendPromptVariant::Loop(loop_prompt) => {
+                            if loop_prompt.get_condition()(context) {
+                                cur_prompt = loop_prompt.get_prompt();
+                            } else {
+                                break None
+                            }
+                        }
                     }
                 }
+            });
+            if final_break {
+                self.prompts.next();
+                break res
             }
-        });
-        if loop_end {
-            self.prompts.next()
-        }else if to_next{
-            self.prompts.next();
-            res
-        }else {
-            res
+            if res.is_none() {
+                if self.prompts.next().is_none() {
+                    break None
+                }
+            }
         }
     }
 }
